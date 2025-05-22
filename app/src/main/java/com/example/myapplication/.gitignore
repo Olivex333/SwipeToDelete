@@ -1,0 +1,12 @@
+# Gradle
+.gradle/
+build/
+**/build/
+# Android Studio
+.idea/
+*.iml
+.vscode/
+# Lokalna konfiguracja
+local.properties
+# Pliki tymczasowe
+*.log
