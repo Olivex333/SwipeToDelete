@@ -10,7 +10,7 @@ data class User(
     @SerializedName("address")
     val address: Address,
     val phone: String,
-    val website: String,
+    val website: String ,
     val company: Company
 )
 

@@ -1,11 +1,11 @@
 package com.example.myapplication
 
-import UserViewModel
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -17,19 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Web
+import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -45,12 +33,22 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlin.math.roundToInt
+
+class UserViewModelFactory(private val userService: UserService) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
+            return UserViewModel(userService) as T
+        }
+        throw IllegalArgumentException("Nieznany model klasy")
+    }
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,7 +56,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(color = MaterialTheme.colors.background) {
-                    val userViewModel = UserViewModel()
+                    val userViewModel: UserViewModel by viewModels {
+                        UserViewModelFactory(ServiceFactory.createUserService())
+                    }
                     Navigation(userViewModel)
                 }
             }
@@ -66,16 +66,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun Navigation(userViewModel: UserViewModel) {
-
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "mainScreen") {
         composable("mainScreen") {
-            MainScreen(navController)
+            MainScreen(navController, userViewModel)
         }
         composable("userDetails/{userId}") { backStackEntry ->
             val userId = backStackEntry.arguments?.getString("userId")
@@ -86,8 +84,7 @@ fun Navigation(userViewModel: UserViewModel) {
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
-fun MainScreen(navController: NavHostController) {
-
+fun MainScreen(navController: NavHostController, userViewModel: UserViewModel) {
     var currentScreen by remember { mutableStateOf("documents") }
     val backgroundColor = if (currentScreen == "documents") Color(0xFF003568) else Color.White
 
@@ -107,7 +104,7 @@ fun MainScreen(navController: NavHostController) {
                     unselectedContentColor = Color.Gray
                 )
                 BottomNavigationItem(
-                    icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = "Skanowanie RFID") },
+                    icon = { Icon(Icons.Filled.QrCodeScanner, contentDescription = "Skanowanie RFID") },
                     label = { Text("Skanowanie RFID") },
                     selected = currentScreen == "rfid",
                     onClick = { currentScreen = "rfid" },
@@ -117,13 +114,14 @@ fun MainScreen(navController: NavHostController) {
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .background(backgroundColor)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(backgroundColor)
         ) {
             when (currentScreen) {
-                "documents" -> LogisticDocumentScreen(navController)
+                "documents" -> LogisticDocumentScreen(navController, userViewModel)
                 "rfid" -> RfidScreen()
             }
         }
@@ -138,7 +136,7 @@ fun RfidScreen() {
 }
 
 @Composable
-fun LogisticDocumentScreen(navController: NavHostController) {
+fun LogisticDocumentScreen(navController: NavHostController, userViewModel: UserViewModel) {
     val titles = listOf("Przyjęcia", "Wydania")
     var currentTitleIndex by remember { mutableStateOf(0) }
     var isExternalSelected by remember { mutableStateOf(false) }
@@ -166,7 +164,6 @@ fun LogisticDocumentScreen(navController: NavHostController) {
                     IconButton(onClick = { toggleTitle() }) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Toggle title")
                     }
-
                 },
                 actions = {
                     IconButton(onClick = { toggleTitle() }) {
@@ -191,7 +188,7 @@ fun LogisticDocumentScreen(navController: NavHostController) {
         color = Color.White
     ) {
         if (!isExternalSelected) {
-            MyLazyColumnList(navController)
+            MyLazyColumnList(navController, userViewModel)
         }
     }
 }
@@ -240,9 +237,8 @@ fun ButtonToggleGroup(isExternalSelected: Boolean, onSelectionChange: (Boolean) 
 }
 
 @Composable
-fun MyLazyColumnList(navController: androidx.navigation.NavHostController) {
+fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewModel) {
     val context = LocalContext.current
-    val userViewModel: UserViewModel = viewModel()
     val users by userViewModel.users.observeAsState(emptyList())
 
     var currentUserToDelete by remember { mutableStateOf<User?>(null) }
@@ -252,9 +248,8 @@ fun MyLazyColumnList(navController: androidx.navigation.NavHostController) {
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth(),
-
-        verticalArrangement = Arrangement.spacedBy(16.dp), // Zwiększony odstęp między kartami
-        contentPadding = PaddingValues(vertical = 16.dp) // Zwiększony odstęp od krawędzi
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         items(users, key = { it.id }) { user ->
             Box(
@@ -330,7 +325,6 @@ fun MyLazyColumnList(navController: androidx.navigation.NavHostController) {
         )
     }
 }
-
 
 @Composable
 fun DraggableListItem(
@@ -417,7 +411,7 @@ fun DraggableListItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    Icons.Default.Person, // Ikonka użytkownika
+                    Icons.Filled.Person,
                     contentDescription = "User Icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -430,7 +424,7 @@ fun DraggableListItem(
                     )
                     Text(
                         text = secondaryText,
-                        fontSize = 14.sp, // Mniejszy rozmiar czcionki dla tekstu pomocniczego
+                        fontSize = 14.sp,
                         style = MaterialTheme.typography.body2
                     )
                 }
@@ -443,8 +437,6 @@ fun DraggableListItem(
 fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController, userViewModel: UserViewModel) {
     val whiteColor = Color(0xFFF0F0F0)
     val darkGrayColor = Color(0xFF252525)
-
-
     val userIdInt = userId?.toIntOrNull()
 
     Scaffold(
@@ -457,12 +449,10 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
                     }
                 },
                 backgroundColor = darkGrayColor
-
             )
         },
         content = { paddingValues ->
             val user = userViewModel.users.value?.find { it.id == userIdInt }
-
             if (user != null) {
                 Column(
                     modifier = Modifier
@@ -471,56 +461,49 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
                         .padding(16.dp)
                 ) {
                     UserDetailCard(
-                        icon = Icons.Default.Person,
+                        icon = Icons.Filled.Person,
                         title = "Imię i nazwisko",
                         content = user.name,
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.AccountCircle,
+                        icon = Icons.Filled.AccountCircle,
                         title = "Username",
                         content = user.username,
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.Email,
+                        icon = Icons.Filled.Email,
                         title = "Email",
                         content = user.email,
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
-
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.LocationOn,
+                        icon = Icons.Filled.LocationOn,
                         title = "Adres",
                         content = "Ulica: ${user.address.street}\nApartament: ${user.address.suite}\nMiasto: ${user.address.city}\nKod pocztowy: ${user.address.zipcode}",
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.Phone,
+                        icon = Icons.Filled.Phone,
                         title = "Telefon",
                         content = user.phone,
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.Web,
+                        icon = Icons.Filled.Web,
                         title = "Strona internetowa",
                         content = user.website,
                         backgroundColor = whiteColor,
                         contentColor = darkGrayColor
                     )
-
                     UserDetailCard(
-                        icon = Icons.Default.Business,
+                        icon = Icons.Filled.Business,
                         title = "Firma",
                         content = "Nazwa: ${user.company.name}\nSlogan: ${user.company.catchPhrase}\nBS: ${user.company.bs}",
                         backgroundColor = whiteColor,
@@ -534,7 +517,6 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
     )
 }
 
-
 @Composable
 fun UserDetailCard(icon: ImageVector, title: String, content: String, backgroundColor: Color, contentColor: Color) {
     Card(
@@ -544,8 +526,7 @@ fun UserDetailCard(icon: ImageVector, title: String, content: String, background
         backgroundColor = backgroundColor,
         elevation = 0.dp,
         shape = RoundedCornerShape(16.dp),
-
-        ) {
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
