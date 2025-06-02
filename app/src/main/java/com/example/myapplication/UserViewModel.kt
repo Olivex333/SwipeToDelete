@@ -19,6 +19,10 @@ class UserViewModel(private val userService: UserService) : ViewModel() {
         loadUsers()
     }
 
+    fun setSearchQuery(query: String) {
+        _uiState.value = _uiState.value?.copy(searchQuery = query)
+    }
+
     fun loadUsers() {
         _uiState.value = _uiState.value?.copy(isLoading = true, error = null)
 

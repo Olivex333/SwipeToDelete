@@ -96,6 +96,7 @@ dependencies {
     implementation("androidx.multidex:multidex:2.0.1")
     implementation("androidx.compose.material:material-icons-extended:1.6.5")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.5")
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.33.0-alpha")
 
 
 }

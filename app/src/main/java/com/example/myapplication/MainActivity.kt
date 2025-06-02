@@ -239,37 +239,94 @@ fun ButtonToggleGroup(isExternalSelected: Boolean, onSelectionChange: (Boolean) 
 @Composable
 fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewModel) {
     val context = LocalContext.current
-    val users by userViewModel.users.observeAsState(emptyList())
-
+    val uiState by userViewModel.uiState.observeAsState(UiState())
     var currentUserToDelete by remember { mutableStateOf<User?>(null) }
     var currentUserToApprove by remember { mutableStateOf<User?>(null) }
 
-    LazyColumn(
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(vertical = 16.dp)
-    ) {
-        items(users, key = { it.id }) { user ->
-            Box(
+    // Filtrowanie użytkowników po name
+    val filteredUsers = uiState.users.filter {
+        it.name.contains(uiState.searchQuery, ignoreCase = true)
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Pasek wyszukiwania i przycisk odświeżania
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TextField(
+                value = uiState.searchQuery,
+                onValueChange = { userViewModel.setSearchQuery(it) },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        navController.navigate("userDetails/${user.id}")
-                    }
+                    .weight(1f)
+                    .padding(end = 8.dp),
+                placeholder = { Text("Szukaj po nazwie...") },
+                singleLine = true,
+                colors = TextFieldDefaults.textFieldColors(
+                    backgroundColor = Color.White,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                shape = RoundedCornerShape(50.dp)
+            )
+            IconButton(
+                onClick = { userViewModel.loadUsers() },
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF003568), RoundedCornerShape(50))
             ) {
-                DraggableListItem(
-                    item = user.name,
-                    secondaryText = "Kliknij, aby zobaczyć informacje\nPrzesuń, aby wywołać akcje",
-                    maxOffsetDp = 75.dp,
-                    onDismiss = {
-                        currentUserToDelete = user
-                    },
-                    onApprove = {
-                        currentUserToApprove = user
-                    }
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Odśwież",
+                    tint = Color.White
                 )
+            }
+        }
+
+        when {
+            uiState.isLoading -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error != null -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Błąd: ${uiState.error}", color = Color.Red)
+                }
+            }
+            filteredUsers.isEmpty() -> {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Brak użytkowników do wyświetlenia")
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp)
+                ) {
+                    items(filteredUsers, key = { it.id }) { user ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    navController.navigate("userDetails/${user.id}")
+                                }
+                        ) {
+                            DraggableListItem(
+                                item = user.name,
+                                secondaryText = "Kliknij, aby zobaczyć informacje\nPrzesuń, aby wywołać akcje",
+                                maxOffsetDp = 75.dp,
+                                onDismiss = { currentUserToDelete = user },
+                                onApprove = { currentUserToApprove = user }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -284,15 +341,14 @@ fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewMo
                     onClick = {
                         userViewModel.deleteUser(userToDelete)
                         currentUserToDelete = null
+                        Toast.makeText(context, "Użytkownik usunięty", Toast.LENGTH_SHORT).show()
                     }
                 ) {
                     Text("Usuń")
                 }
             },
             dismissButton = {
-                Button(
-                    onClick = { currentUserToDelete = null }
-                ) {
+                Button(onClick = { currentUserToDelete = null }) {
                     Text("Anuluj")
                 }
             }
@@ -316,16 +372,13 @@ fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewMo
                 }
             },
             dismissButton = {
-                Button(
-                    onClick = { currentUserToApprove = null }
-                ) {
+                Button(onClick = { currentUserToApprove = null }) {
                     Text("Anuluj")
                 }
             }
         )
     }
 }
-
 @Composable
 fun DraggableListItem(
     item: String,
@@ -538,6 +591,81 @@ fun UserDetailCard(icon: ImageVector, title: String, content: String, background
             Column {
                 Text(title, fontWeight = FontWeight.Bold, color = contentColor)
                 Text(content, color = contentColor)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchBar(userViewModel: UserViewModel) {
+    val uiState by userViewModel.uiState.observeAsState(UiState())
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextField(
+            value = uiState.searchQuery,
+            onValueChange = { userViewModel.setSearchQuery(it) },
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 8.dp),
+            placeholder = { Text("Szukaj po nazwie...") },
+            singleLine = true,
+            colors = TextFieldDefaults.textFieldColors(
+                backgroundColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(50.dp)
+        )
+
+        IconButton(
+            onClick = { userViewModel.loadUsers() },
+            modifier = Modifier
+                .size(48.dp)
+                .background(Color(0xFF003568), RoundedCornerShape(50))
+        ) {
+            Icon(
+                imageVector = Icons.Default.Refresh,
+                contentDescription = "Odśwież",
+                tint = Color.White
+            )
+        }
+    }
+}
+
+@Composable
+private fun UserListContent(
+    users: List<User>,
+    navController: NavHostController,
+    currentUserToDelete: (User) -> Unit,
+    currentUserToApprove: (User) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        items(users, key = { it.id }) { user ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        navController.navigate("userDetails/${user.id}")
+                    }
+            ) {
+                DraggableListItem(
+                    item = user.name,
+                    secondaryText = "Kliknij, aby zobaczyć informacje\nPrzesuń, aby wywołać akcje",
+                    maxOffsetDp = 75.dp,
+                    onDismiss = { currentUserToDelete(user) },
+                    onApprove = { currentUserToApprove(user) }
+                )
             }
         }
     }
