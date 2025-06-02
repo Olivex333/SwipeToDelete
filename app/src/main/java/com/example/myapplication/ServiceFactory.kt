@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import com.example.myapplication.BuildConfig
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

@@ -31,9 +31,16 @@ class UserViewModel(private val userService: UserService) : ViewModel() {
                 val usersList = withContext(Dispatchers.IO) {
                     userService.getUsers()
                 }
-                _uiState.value = UiState(users = usersList)
+                _uiState.value = _uiState.value?.copy(
+                    users = usersList,
+                    isLoading = false,
+                    error = null
+                )
             } catch (e: Exception) {
-                _uiState.value = UiState(error = "Błąd: ${e.message}")
+                _uiState.value = _uiState.value?.copy(
+                    isLoading = false,
+                    error = "Błąd: ${e.message}"
+                )
             }
         }
     }

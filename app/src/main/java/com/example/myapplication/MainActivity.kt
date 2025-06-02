@@ -491,6 +491,7 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
     val whiteColor = Color(0xFFF0F0F0)
     val darkGrayColor = Color(0xFF252525)
     val userIdInt = userId?.toIntOrNull()
+    val uiState by userViewModel.uiState.observeAsState(UiState())
 
     Scaffold(
         topBar = {
@@ -505,7 +506,7 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
             )
         },
         content = { paddingValues ->
-            val user = userViewModel.users.value?.find { it.id == userIdInt }
+            val user = uiState.users.find { it.id == userIdInt }
             if (user != null) {
                 Column(
                     modifier = Modifier
