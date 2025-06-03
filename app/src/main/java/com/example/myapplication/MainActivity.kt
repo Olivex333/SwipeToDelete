@@ -1,11 +1,11 @@
 package com.example.myapplication
 
 import android.annotation.SuppressLint
+import android.app.Application
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
@@ -19,7 +19,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,32 +32,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.HiltAndroidApp
 import kotlin.math.roundToInt
 
-class UserViewModelFactory(private val userService: UserService) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(UserViewModel::class.java)) {
-            return UserViewModel(userService) as T
-        }
-        throw IllegalArgumentException("Nieznany model klasy")
-    }
-}
+@HiltAndroidApp
+class MyApplication : Application()
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
                 Surface(color = MaterialTheme.colors.background) {
-                    val userViewModel: UserViewModel by viewModels {
-                        UserViewModelFactory(ServiceFactory.createUserService())
-                    }
+                    val userViewModel: UserViewModel = hiltViewModel()
                     Navigation(userViewModel)
                 }
             }
@@ -81,6 +74,7 @@ fun Navigation(userViewModel: UserViewModel) {
         }
     }
 }
+
 
 @SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
@@ -239,14 +233,10 @@ fun ButtonToggleGroup(isExternalSelected: Boolean, onSelectionChange: (Boolean) 
 @Composable
 fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewModel) {
     val context = LocalContext.current
-    val uiState by userViewModel.uiState.observeAsState(UiState())
+    val uiState by userViewModel.uiState.collectAsState()
+    val filteredUsers by userViewModel.filteredUsers.collectAsState()
     var currentUserToDelete by remember { mutableStateOf<User?>(null) }
     var currentUserToApprove by remember { mutableStateOf<User?>(null) }
-
-    // Filtrowanie użytkowników po name
-    val filteredUsers = uiState.users.filter {
-        it.name.contains(uiState.searchQuery, ignoreCase = true)
-    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Pasek wyszukiwania i przycisk odświeżania
@@ -293,7 +283,7 @@ fun MyLazyColumnList(navController: NavHostController, userViewModel: UserViewMo
             }
             uiState.error != null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Błąd: ${uiState.error}", color = Color.Red)
+                    Text("Błąd: ${uiState.error?.message}", color = Color.Red)
                 }
             }
             filteredUsers.isEmpty() -> {
@@ -491,7 +481,7 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
     val whiteColor = Color(0xFFF0F0F0)
     val darkGrayColor = Color(0xFF252525)
     val userIdInt = userId?.toIntOrNull()
-    val uiState by userViewModel.uiState.observeAsState(UiState())
+    val uiState by userViewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -571,6 +561,7 @@ fun UserDetailsScreenWithCards(userId: String?, navController: NavHostController
     )
 }
 
+
 @Composable
 fun UserDetailCard(icon: ImageVector, title: String, content: String, backgroundColor: Color, contentColor: Color) {
     Card(
@@ -593,47 +584,6 @@ fun UserDetailCard(icon: ImageVector, title: String, content: String, background
                 Text(title, fontWeight = FontWeight.Bold, color = contentColor)
                 Text(content, color = contentColor)
             }
-        }
-    }
-}
-
-@Composable
-private fun SearchBar(userViewModel: UserViewModel) {
-    val uiState by userViewModel.uiState.observeAsState(UiState())
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        TextField(
-            value = uiState.searchQuery,
-            onValueChange = { userViewModel.setSearchQuery(it) },
-            modifier = Modifier
-                .weight(1f)
-                .padding(end = 8.dp),
-            placeholder = { Text("Szukaj po nazwie...") },
-            singleLine = true,
-            colors = TextFieldDefaults.textFieldColors(
-                backgroundColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
-            shape = RoundedCornerShape(50.dp)
-        )
-
-        IconButton(
-            onClick = { userViewModel.loadUsers() },
-            modifier = Modifier
-                .size(48.dp)
-                .background(Color(0xFF003568), RoundedCornerShape(50))
-        ) {
-            Icon(
-                imageVector = Icons.Default.Refresh,
-                contentDescription = "Odśwież",
-                tint = Color.White
-            )
         }
     }
 }

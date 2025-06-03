@@ -1,7 +1,5 @@
 package com.example.myapplication
 
-import com.example.myapplication.BuildConfig
-import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -11,28 +9,21 @@ object ServiceFactory {
     fun createUserService(): UserService {
         val retrofit = Retrofit.Builder()
             .baseUrl(BuildConfig.API_URL)
-            .client(
-                OkHttpClient.Builder()
-                    .addInterceptor(HttpLoggingInterceptor().apply {
-                        level = HttpLoggingInterceptor.Level.BODY
-                    })
-                    .build()
-            )
+            .client(createSecureOkHttpClient())
             .addConverterFactory(GsonConverterFactory.create())
             .build()
         return retrofit.create(UserService::class.java)
     }
 
-    internal fun createSecureOkHttpClient(): OkHttpClient {
+    private fun createSecureOkHttpClient(): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
             })
-            .certificatePinner(
-                CertificatePinner.Builder()
-                    .add("jsonplaceholder.typicode.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
-                    .build()
-            )
             .build()
     }
 }

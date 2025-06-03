@@ -1,7 +1,8 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("kotlin-kapt") // zostaw jeśli używasz np. Room, w przeciwnym razie możesz usunąć
+    id("kotlin-kapt")
+    id("dagger.hilt.android.plugin")
 }
 
 android {
@@ -97,6 +98,10 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.5")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.5")
     implementation("com.google.accompanist:accompanist-swiperefresh:0.33.0-alpha")
+
+    implementation("com.google.dagger:hilt-android:2.48")
+    kapt("com.google.dagger:hilt-compiler:2.48")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
 
 }
