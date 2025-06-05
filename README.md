@@ -1,6 +1,6 @@
 # Android User Directory
 
-A modern Android application showcasing best practices in Android development with Jetpack Compose, implementing a clean MVVM architecture pattern. This app demonstrates fetching user data from a REST API, displaying it in a responsive UI, and providing features like search, swipe-to-action, and detailed user profiles.
+A modern Android application showcasing best practices in Android development with Jetpack Compose. This app demonstrates fetching user data from a REST API, displaying it in a responsive UI, and providing features like search, swipe-to-action, and detailed user profiles.
 
 
 
@@ -12,13 +12,6 @@ A modern Android application showcasing best practices in Android development wi
 - **User Details**: View comprehensive user information including address and company details
 - **Error Handling**: Robust error handling for network issues
 - **Offline Support**: Graceful degradation when network is unavailable
-
-## 🏗️ Architecture
-
-This project follows the MVVM (Model-View-ViewModel) architectural pattern 
-
-### Key Components:
-
 - **ViewModel**: Manages UI-related data in a lifecycle-conscious way
 - **StateFlow**: Handles reactive UI updates
 - **Repository Pattern**: Abstracts data sources from the rest of the app
