@@ -59,11 +59,6 @@ This project follows the MVVM (Model-View-ViewModel) architectural pattern and i
 - **Gson**: For JSON serialization/deserialization
 
 
-## 📄 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
----
 
 ⭐ **If you found this project helpful, please give it a star!** ⭐
 
