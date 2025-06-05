@@ -15,23 +15,7 @@ A modern Android application showcasing best practices in Android development wi
 
 ## 🏗️ Architecture
 
-This project follows the MVVM (Model-View-ViewModel) architectural pattern and is organized as follows:
-
-```
-├── data/
-│   ├── models/
-│   │   ├── User.kt
-│   │   └── UiState.kt
-│   └── network/
-│       ├── UserService.kt
-│       └── ServiceFactory.kt
-├── di/
-│   └── AppModule.kt
-└── ui/
-    ├── MainActivity.kt
-    └── viewmodel/
-        └── UserViewModel.kt
-```
+This project follows the MVVM (Model-View-ViewModel) architectural pattern 
 
 ### Key Components:
 
